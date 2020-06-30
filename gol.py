@@ -12,7 +12,7 @@ CELL_WIDTH = 10
 # Create cell vector
 # 1 = alive
 # -1 = dead
-CELLS = np.full( (GRID_SIZE, GRID_SIZE), -1)
+CELLS = np.zeros( (GRID_SIZE, GRID_SIZE))
 
 #Define Colors
 BLACK = (0, 0, 0)
@@ -34,24 +34,47 @@ def draw_grid():
 
 ## Update single cell on press
 def update_cell(x, y):
-    CELLS[x][y] *= -1
-    print(CELLS[x][y])
+    if CELLS[x][y] == 1:
+        CELLS[x][y] = 0
+    else:
+        CELLS[x][y] = 1
+    
+    print((x,y))
 
 ## Count neighbours
-def cell_cycle(xpos, ypos):
-    ## Some special cases
+def cell_count(xpos, ypos):
     sum = 0
-    for x in range(xpos - 1, xpos + 1):
-        for y in range(ypos - 1, ypos + 1):
+    
+    #Range needs extra +1 to iterate correctly over the cell (see range() command in doc)
+    for x in range(xpos - 1, xpos + 1 + 1):
+        for y in range(ypos - 1, ypos + 1 + 1):
+            #print("Iterating x:" + str(x) + " y:" + str(y) + " value: " + str(CELLS[x][y]))
             sum += CELLS[x][y]
-    if sum == -7:
-        print("FEW")
+
+    #Dont count self
+    if CELLS[xpos][ypos] == 1:
+        sum -= 1
+
+    return sum
 
 ## One Life Cycle
 def life_cycle():
+    global CELLS
+    CELLS_FLIP = np.zeros( (GRID_SIZE, GRID_SIZE) ) 
     for x in range(0, GRID_SIZE - 1):
         for y in range(0, GRID_SIZE - 1):
-            cell_cycle(x,y)
+            sum = cell_count(x,y)
+            #print("Neighbours at " + str(x) + "," + str(y) +" is " + str(sum))
+            if CELLS[x][y] == 1 and sum <2:
+                CELLS_FLIP[x][y] = 0            
+            if CELLS[x][y] == 1 and (sum == 2 or sum == 3):
+                CELLS_FLIP[x][y] = 1  
+            if CELLS[x][y] == 1 and sum > 3: 
+                CELLS_FLIP[x][y] = 0 
+            if CELLS[x][y] == 0 and sum == 3:
+                CELLS_FLIP[x][y] = 1 
+    CELLS = CELLS_FLIP
+
 
 # Draws cells that are int 1 in CELLS. Must be some way to find all non zero values in CELLS and get those position out as a subset of positions
 # 2DO: Study numpy documentation on finding nonzero positions to reduce the range to only those
@@ -65,7 +88,8 @@ def draw_cells():
 def main():
     run = True
     draw_mode = False
-    FPS = 50
+    auto_cycle = False
+    FPS = 60
     clock = pygame.time.Clock()
     
     #Draw basics
@@ -74,11 +98,19 @@ def main():
     while run:
         clock.tick(FPS)
 
+        if auto_cycle == True:
+            life_cycle()
+            pygame.time.wait(40)
+
         for event in pygame.event.get():
+            #print(event)
             if event.type == pygame.KEYDOWN:
                 if event.key == 115:
                     print("Draw Mode Toggle")
                     draw_mode = not draw_mode
+                if event.key == 97:
+                    print("Auto Mode Toggle")
+                    auto_cycle = not auto_cycle
                 if event.key == 116:
                     print("Cycle Once")
                     life_cycle()
